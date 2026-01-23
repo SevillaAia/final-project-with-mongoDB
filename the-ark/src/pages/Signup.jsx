@@ -1,22 +1,43 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUser, faEnvelope, faLock } from "@fortawesome/free-solid-svg-icons";
+import axios from "axios";
 
-const Register = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+function Signup() {
+  const [username, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      alert('Passwords do not match!');
-      return;
+
+    try {
+      const { data } = await axios.post("http://localhost:5005/auth/signup", {
+        username,
+        password,
+        email,
+      });
+
+      console.log(data);
+      setMessage("Registration successful! Redirecting to login...");
+      setShowAlert(true);
+      setTimeout(() => {
+        setShowAlert(false);
+        navigate("/login");
+      }, 2000);
+    } catch (err) {
+      console.log(err);
+      setMessage(
+        err.response?.data?.errorMessage ||
+          "Registration failed. Please try again.",
+      );
+      setShowAlert(true);
     }
-    console.log('Register attempt:', { name, email, password });
-    alert('Registration functionality to be implemented');
   };
 
   return (
@@ -24,14 +45,27 @@ const Register = () => {
       <div className="auth-form">
         <h2>Register</h2>
         <form onSubmit={handleSubmit}>
+          {showAlert && message && (
+            <div
+              style={{
+                marginBottom: "1rem",
+                color: message.includes("match") ? "red" : "green",
+                cursor: "pointer",
+              }}
+              onClick={() => setShowAlert(false)}
+            >
+              {message}
+            </div>
+          )}
           <div className="form-group">
-            <label htmlFor="name">
+            <label htmlFor="username">
               <FontAwesomeIcon icon={faUser} /> Name
             </label>
             <input
               type="text"
-              id="name"
-              value={name}
+              id="username"
+              name="username"
+              value={username}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
               required
@@ -44,6 +78,7 @@ const Register = () => {
             <input
               type="email"
               id="email"
+              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
@@ -57,6 +92,7 @@ const Register = () => {
             <input
               type="password"
               id="password"
+              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
@@ -70,6 +106,7 @@ const Register = () => {
             <input
               type="password"
               id="confirm-password"
+              name="confirm-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
@@ -86,6 +123,6 @@ const Register = () => {
       </div>
     </div>
   );
-};
+}
 
-export default Register;
+export default Signup;
