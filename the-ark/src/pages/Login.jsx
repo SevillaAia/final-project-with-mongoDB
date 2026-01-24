@@ -4,6 +4,7 @@ import { faSpinner, faUser, faLock } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ const Login = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,12 +23,21 @@ const Login = () => {
         email,
         password,
       });
-      localStorage.setItem("authToken", data.authToken);
+      console.log("LOGIN RESPONSE", data);
+
+      // Save user data to AuthContext
+      login(data.user, data.authToken);
+
       setMessage("Login successful!");
       setShowAlert(true);
       setTimeout(() => {
         setShowAlert(false);
-        navigate("/");
+        // Redirect admin to /admin, others to /
+        if (data.user && data.user.role === "Admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/");
+        }
       }, 2000);
     } catch (err) {
       console.log(err);
