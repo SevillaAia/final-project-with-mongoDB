@@ -11,7 +11,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 const UserManagement = () => {
-  // Sample users data
   const [users, setUsers] = useState([
     /*  {
       id: 1,
@@ -64,7 +63,6 @@ const UserManagement = () => {
   ]);
 
   useEffect(() => {
-    // Fetch users from backend API here and setUsers
     async function getAllUsers() {
       try {
         const users = await axios.get("http://localhost:5005/auth/user");
@@ -137,18 +135,30 @@ const UserManagement = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingUser) {
-      // Update existing user (check both id and _id)
-      setUsers((prev) =>
-        prev.map((user) =>
-          (user.id && editingUser.id && user.id === editingUser.id) ||
-          (user._id && editingUser._id && user._id === editingUser._id)
-            ? { ...user, ...formData }
-            : user,
-        ),
-      );
+      try {
+        // Send PUT request to backend to update user
+        const userId = editingUser._id || editingUser.id;
+        await axios.put(`http://localhost:5005/auth/user/${userId}`, formData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
+        // Update local state
+        setUsers((prev) =>
+          prev.map((user) =>
+            (user.id && editingUser.id && user.id === editingUser.id) ||
+            (user._id && editingUser._id && user._id === editingUser._id)
+              ? { ...user, ...formData }
+              : user,
+          ),
+        );
+      } catch (error) {
+        console.error("Error updating user:", error);
+        alert("Failed to update user.");
+      }
     } else {
       // Add new user
       const newUser = {
@@ -165,25 +175,50 @@ const UserManagement = () => {
     handleCloseModal();
   };
 
-  const handleDelete = (userId) => {
+  const handleDelete = async (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers((prev) =>
-        prev.filter((user) => user.id !== userId && user._id !== userId),
-      );
+      try {
+        await axios.delete(`http://localhost:5005/auth/user/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
+        setUsers((prev) =>
+          prev.filter((user) => user.id !== userId && user._id !== userId),
+        );
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        alert("Failed to delete user.");
+      }
     }
   };
 
-  const handleToggleStatus = (userId) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === userId || user._id === userId
-          ? {
-              ...user,
-              status: user.status === "Active" ? "Inactive" : "Active",
-            }
-          : user,
-      ),
-    );
+  const handleToggleStatus = async (userId) => {
+    try {
+      // Find the user to get the current status
+      const user = users.find((u) => u.id === userId || u._id === userId);
+      if (!user) return;
+      const newStatus = user.status === "Active" ? "Inactive" : "Active";
+      // Update status in backend
+      await axios.put(
+        `http://localhost:5005/auth/user/${userId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        },
+      );
+      // Update status in local state
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId || u._id === userId ? { ...u, status: newStatus } : u,
+        ),
+      );
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update user status.");
+    }
   };
 
   return (
@@ -279,7 +314,7 @@ const UserManagement = () => {
                       </button>
                       <button
                         className="btn-icon btn-toggle"
-                        onClick={() => handleToggleStatus(user.id)}
+                        onClick={() => handleToggleStatus(user._id || user.id)}
                         title={
                           user.status === "Active" ? "Deactivate" : "Activate"
                         }
@@ -290,7 +325,7 @@ const UserManagement = () => {
                       </button>
                       <button
                         className="btn-icon btn-delete"
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user._id || user.id)}
                         title="Delete user"
                       >
                         <FontAwesomeIcon icon={faTrash} />
@@ -329,12 +364,12 @@ const UserManagement = () => {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="name">Full Name</label>
+                <label htmlFor="username">Full Name</label>
                 <input
                   type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="username"
+                  name="username"
+                  value={formData.username}
                   onChange={handleInputChange}
                   required
                 />
