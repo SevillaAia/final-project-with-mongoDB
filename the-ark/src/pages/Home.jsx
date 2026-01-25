@@ -447,23 +447,38 @@ const Home = () => {
         <div className="scrolling-logos-container">
           <div className="scrolling-logos">
             <img
-              src="/src/assets/logo1.png"
-              alt="Wildlife Org 1"
+              src="/src/assets/EWTLogo.png"
+              alt="Endagered Wildlife Trust"
               className="logo-icon"
             />
             <img
-              src="/src/assets/logo2.png"
-              alt="Wildlife Org 2"
+              src="/src/assets/GWCLogo.png"
+              alt="Global Wildlife Conservancy"
               className="logo-icon"
             />
             <img
-              src="/src/assets/logo3.png"
-              alt="Wildlife Org 3"
+              src="/src/assets/wwfLogo.png"
+              alt="Wildlife WWF"
               className="logo-icon"
             />
             <img
-              src="/src/assets/logo4.png"
+              src="/src/assets/haribonLogo.png"
               alt="Wildlife Org 4"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/SSCSLogo.png"
+              alt="Sea Shepherd Conservation Society"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/unesco.png"
+              alt="unesco"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/MCiLogo.png"
+              alt="unesco"
               className="logo-icon"
             />
             {/* Add more logos as needed */}
