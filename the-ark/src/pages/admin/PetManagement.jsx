@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
@@ -9,11 +9,12 @@ import {
   faImage,
   faPaw,
 } from "@fortawesome/free-solid-svg-icons";
+import axios from "axios";
 
 const PetManagement = () => {
   // Sample pets data
   const [pets, setPets] = useState([
-    {
+    /* {
       id: 1,
       name: "Buddy",
       species: "Dog",
@@ -74,7 +75,7 @@ const PetManagement = () => {
       image:
         "https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?auto=format&fit=crop&w=300&q=80",
       description: "Loyal and protective German Shepherd, great with families.",
-    },
+    }, */
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,6 +84,8 @@ const PetManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingPet, setEditingPet] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     species: "Dog",
@@ -93,6 +96,28 @@ const PetManagement = () => {
     image: "",
     description: "",
   });
+
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await axios.get("http://localhost:5005/auth/pets", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Ensure we always set an array
+        const petsData = Array.isArray(response.data)
+          ? response.data
+          : response.data?.pets || [];
+        setPets(petsData);
+      } catch (error) {
+        console.error("Error fetching pets data:", error);
+        setPets([]); // Set empty array on error
+      }
+    };
+    fetchPets();
+  }, []);
 
   // Filter pets based on search and filters
   const filteredPets = pets.filter((pet) => {
@@ -140,6 +165,7 @@ const PetManagement = () => {
     setShowModal(false);
     setEditingPet(null);
     setImagePreview(null);
+    setImageFile(null);
     setFormData({
       name: "",
       species: "Dog",
@@ -163,9 +189,25 @@ const PetManagement = () => {
       // Create a preview URL for the selected image
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
-      // In a real app, you would upload this to a server
-      // For now, we'll store the preview URL
-      setFormData((prev) => ({ ...prev, image: previewUrl }));
+      // Store the file for Cloudinary upload
+      setImageFile(file);
+    }
+  };
+
+  const uploadToCloudinary = async (file) => {
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("upload_preset", "the-ark-uploads");
+
+    try {
+      const response = await axios.post(
+        "https://api.cloudinary.com/v1_1/dnv3hrhir/image/upload",
+        uploadData,
+      );
+      return response.data.secure_url;
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
+      throw error;
     }
   };
 
@@ -175,29 +217,79 @@ const PetManagement = () => {
     setImagePreview(url);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingPet) {
-      // Update existing pet
-      setPets((prev) =>
-        prev.map((pet) =>
-          pet.id === editingPet.id ? { ...pet, ...formData } : pet,
-        ),
-      );
-    } else {
-      // Add new pet
-      const newPet = {
-        id: Date.now(),
+    setIsSubmitting(true);
+
+    try {
+      let imageUrl = formData.image;
+
+      // Upload image to Cloudinary if a new file was selected
+      if (imageFile) {
+        imageUrl = await uploadToCloudinary(imageFile);
+      }
+
+      const petData = {
         ...formData,
+        image: imageUrl,
       };
-      setPets((prev) => [...prev, newPet]);
+
+      const token = localStorage.getItem("authToken");
+
+      if (editingPet) {
+        // Update existing pet
+        const response = await axios.put(
+          `http://localhost:5005/auth/pets/${editingPet._id}`,
+          petData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        setPets((prev) =>
+          prev.map((pet) => (pet._id === editingPet._id ? response.data : pet)),
+        );
+      } else {
+        // Add new pet
+        const response = await axios.post(
+          "http://localhost:5005/auth/pets",
+          petData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        setPets((prev) => [...prev, response.data]);
+      }
+
+      handleCloseModal();
+      setImageFile(null);
+    } catch (error) {
+      console.error("Error saving pet:", error);
+      alert("Failed to save pet. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (petId) => {
+  const handleDelete = async (petId) => {
     if (window.confirm("Are you sure you want to delete this pet?")) {
-      setPets((prev) => prev.filter((pet) => pet.id !== petId));
+      try {
+        const token = localStorage.getItem("authToken");
+        await axios.delete(`http://localhost:5005/auth/pets/${petId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setPets((prev) =>
+          prev.filter((pet) => pet._id !== petId && pet.id !== petId),
+        );
+      } catch (error) {
+        console.error("Error deleting pet:", error);
+        alert("Failed to delete pet. Please try again.");
+      }
     }
   };
 
@@ -249,7 +341,7 @@ const PetManagement = () => {
       <div className="pets-grid">
         {filteredPets.length > 0 ? (
           filteredPets.map((pet) => (
-            <div key={pet.id} className="pet-card">
+            <div key={pet._id || pet.id} className="pet-card">
               <div className="pet-card-image">
                 {pet.image ? (
                   <img src={pet.image} alt={pet.name} />
@@ -285,7 +377,7 @@ const PetManagement = () => {
                   </button>
                   <button
                     className="btn-icon btn-delete"
-                    onClick={() => handleDelete(pet.id)}
+                    onClick={() => handleDelete(pet._id || pet.id)}
                     title="Delete pet"
                   >
                     <FontAwesomeIcon icon={faTrash} />
