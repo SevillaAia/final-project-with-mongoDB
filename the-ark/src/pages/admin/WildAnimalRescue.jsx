@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import axios from "axios";
 import {
   faSearch,
   faEdit,
@@ -12,11 +13,12 @@ import {
   faHeart,
   faCheckCircle,
 } from "@fortawesome/free-solid-svg-icons";
+import { API_URL } from "../../../config/config";
 
 const WildAnimalRescue = () => {
   // Sample wild animals data
   const [animals, setAnimals] = useState([
-    {
+    /*  {
       id: 1,
       name: "Rocky",
       species: "Raccoon",
@@ -84,8 +86,28 @@ const WildAnimalRescue = () => {
         "https://images.unsplash.com/photo-1588690214972-79c5d0d5ea6f?auto=format&fit=crop&w=300&q=80",
       notes:
         "Successfully raised and released back into suitable habitat on Jan 20.",
-    },
+    }, */
   ]);
+
+  useEffect(() => {
+    async function fetchAnimals() {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await fetch(`${API_URL}/wild-animals`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        const animalsData = Array.isArray(data) ? data : data?.animals || [];
+        setAnimals(animalsData);
+      } catch (error) {
+        console.error("Error fetching wild animals:", error);
+        setAnimals([]);
+      }
+    }
+    fetchAnimals();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCondition, setFilterCondition] = useState("All");
@@ -93,6 +115,8 @@ const WildAnimalRescue = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingAnimal, setEditingAnimal] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     species: "",
@@ -155,6 +179,7 @@ const WildAnimalRescue = () => {
     setShowModal(false);
     setEditingAnimal(null);
     setImagePreview(null);
+    setImageFile(null);
     setFormData({
       name: "",
       species: "",
@@ -178,7 +203,24 @@ const WildAnimalRescue = () => {
     if (file) {
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
-      setFormData((prev) => ({ ...prev, image: previewUrl }));
+      setImageFile(file);
+    }
+  };
+
+  const uploadToCloudinary = async (file) => {
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("upload_preset", "the-ark-uploads");
+
+    try {
+      const response = await axios.post(
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        uploadData,
+      );
+      return response.data.secure_url;
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
+      throw error;
     }
   };
 
@@ -188,27 +230,83 @@ const WildAnimalRescue = () => {
     setImagePreview(url);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingAnimal) {
-      setAnimals((prev) =>
-        prev.map((animal) =>
-          animal.id === editingAnimal.id ? { ...animal, ...formData } : animal,
-        ),
-      );
-    } else {
-      const newAnimal = {
-        id: Date.now(),
+    setIsSubmitting(true);
+
+    try {
+      let imageUrl = formData.image;
+
+      // Upload image to Cloudinary if a new file was selected
+      if (imageFile) {
+        imageUrl = await uploadToCloudinary(imageFile);
+      }
+
+      const animalData = {
         ...formData,
+        image: imageUrl,
       };
-      setAnimals((prev) => [...prev, newAnimal]);
+
+      const token = localStorage.getItem("authToken");
+
+      if (editingAnimal) {
+        // Update existing animal
+        const response = await axios.put(
+          `${API_URL}/wild-animals/${editingAnimal._id}`,
+          animalData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        setAnimals((prev) =>
+          prev.map((animal) =>
+            animal._id === editingAnimal._id ? response.data : animal,
+          ),
+        );
+      } else {
+        // Add new animal
+        const response = await axios.post(
+          `${API_URL}/wild-animals`,
+          animalData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        setAnimals((prev) => [...prev, response.data]);
+      }
+
+      handleCloseModal();
+      setImageFile(null);
+    } catch (error) {
+      console.error("Error saving animal:", error);
+      alert("Failed to save animal. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (animalId) => {
+  const handleDelete = async (animalId) => {
     if (window.confirm("Are you sure you want to delete this rescue record?")) {
-      setAnimals((prev) => prev.filter((animal) => animal.id !== animalId));
+      try {
+        const token = localStorage.getItem("authToken");
+        await axios.delete(`${API_URL}/wild-animals/${animalId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setAnimals((prev) =>
+          prev.filter(
+            (animal) => animal._id !== animalId && animal.id !== animalId,
+          ),
+        );
+      } catch (error) {
+        console.error("Error deleting animal:", error);
+        alert("Failed to delete animal. Please try again.");
+      }
     }
   };
 
@@ -301,7 +399,7 @@ const WildAnimalRescue = () => {
         {filteredAnimals.length > 0 ? (
           filteredAnimals.map((animal) => (
             <div
-              key={animal.id}
+              key={animal._id || animal.id}
               className={`rescue-card ${animal.condition.toLowerCase()}`}
             >
               <div className="rescue-card-image">
@@ -350,7 +448,7 @@ const WildAnimalRescue = () => {
                   </button>
                   <button
                     className="btn-icon btn-delete"
-                    onClick={() => handleDelete(animal.id)}
+                    onClick={() => handleDelete(animal._id || animal.id)}
                     title="Delete record"
                   >
                     <FontAwesomeIcon icon={faTrash} />

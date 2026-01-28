@@ -13,25 +13,25 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Light Theme (default) */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-tertiary: #f0f0f0;
+  /* Light Theme (default) - New Palette */
+  --bg-primary: #f7f2ef;
+  --bg-secondary: #e8ebee;
+  --bg-tertiary: #e5d6cd;
   --bg-card: #ffffff;
   --bg-input: #ffffff;
-  --bg-hover: rgba(78, 204, 163, 0.1);
+  --bg-hover: rgba(210, 218, 227, 0.3);
 
   --text-primary: #1a1a2e;
   --text-secondary: #555;
   --text-tertiary: #888;
   --text-muted: #999;
 
-  --border-color: #ddd;
-  --border-light: #eee;
+  --border-color: #e5d6cd;
+  --border-light: #e8ebee;
 
-  --accent-primary: #4ecca3;
-  --accent-hover: #3db892;
-  --accent-secondary: #1a1a2e;
+  --accent-primary: #dcc3b4;
+  --accent-hover: #d2dae3;
+  --accent-secondary: #f5e8e1;
 
   --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);

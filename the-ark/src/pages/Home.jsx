@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Banner from "../components/Banner";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -6,11 +7,16 @@ import {
   faUsers,
   faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../../config/config";
 
 const Home = () => {
+  const { user, isAuthenticated, isAdmin } = useAuth();
+
   // Example comments data
   const [comments, setComments] = useState([
-    {
+    /*     {
       name: "Jane D.",
       photo:
         "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80",
@@ -33,8 +39,25 @@ const Home = () => {
       rating: 5,
       comment:
         "Volunteering at The Ark has been life-changing. The team is passionate and the animals are well cared for.",
-    },
+    }, */
   ]);
+
+  useEffect(() => {
+    // Fetch comments from backend API (if available)
+    async function getAllComments() {
+      try {
+        const response = await axios.get(`${API_URL}/comments`);
+        console.log("Comments from backend:", response.data);
+        if (response.data && response.data.length > 0) {
+          setComments(response.data);
+        }
+      } catch (error) {
+        // Comments endpoint not available yet - using local state only
+        console.error("Error fetching comments:", error);
+      }
+    }
+    getAllComments();
+  }, []);
 
   const [editIdx, setEditIdx] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -66,14 +89,34 @@ const Home = () => {
     setEditIdx(null);
   };
 
-  const handleDelete = (idx) => {
+  const handleDelete = async (idx) => {
+    const commentToDelete = comments[idx];
+
+    // Optimistically remove from UI
     setComments((prev) => prev.filter((_, i) => i !== idx));
     if (editIdx === idx) setEditIdx(null);
+
+    // Delete from backend
+    try {
+      const token = localStorage.getItem("authToken");
+      await axios.delete(`${API_URL}/comments/${commentToDelete._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      // If delete fails, add the comment back
+      setComments((prev) => [
+        ...prev.slice(0, idx),
+        commentToDelete,
+        ...prev.slice(idx),
+      ]);
+      alert("Failed to delete comment. Please try again.");
+    }
   };
 
   const [form, setForm] = useState({
-    name: "",
-    photo: "",
     rating: 5,
     comment: "",
   });
@@ -87,21 +130,41 @@ const Home = () => {
     setForm((prev) => ({ ...prev, rating: r }));
   };
 
-  const handleSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.comment) return;
-    setComments((prev) => [
-      {
-        name: form.name,
-        photo:
-          form.photo ||
-          "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80",
-        rating: form.rating,
-        comment: form.comment,
-      },
-      ...prev,
-    ]);
-    setForm({ name: "", photo: "", rating: 5, comment: "" });
+    if (!isAuthenticated || !form.comment || submitting) return;
+
+    const newComment = {
+      /*  name: user.username || user.email,
+      photo:
+        user.profilePicture ||
+        "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80",
+      rating: form.rating,
+      comment: form.comment,
+      user: user._id, */
+    };
+
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(`${API_URL}/comments`, newComment, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Add the saved comment (with _id from backend) to the list
+      setComments((prev) => [response.data, ...prev]);
+      setForm({ rating: 5, comment: "" });
+    } catch (error) {
+      console.error("Error saving comment:", error);
+      // Fallback: add to local state even if backend fails
+      setComments((prev) => [newComment, ...prev]);
+      setForm({ rating: 5, comment: "" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -110,32 +173,7 @@ const Home = () => {
         title="Welcome to The Ark"
         subtitle="Rescuing Wildlife & Fostering Shelter Pets"
       />
-      {/* Scrolling logos for supporting organizations */}
-      <div className="scrolling-logos-container">
-        <div className="scrolling-logos">
-          <img
-            src="/src/assets/logo1.png"
-            alt="Wildlife Org 1"
-            className="logo-icon"
-          />
-          <img
-            src="/src/assets/logo2.png"
-            alt="Wildlife Org 2"
-            className="logo-icon"
-          />
-          <img
-            src="/src/assets/logo3.png"
-            alt="Wildlife Org 3"
-            className="logo-icon"
-          />
-          <img
-            src="/src/assets/logo4.png"
-            alt="Wildlife Org 4"
-            className="logo-icon"
-          />
-          {/* Add more logos as needed */}
-        </div>
-      </div>
+
       <div className="home-content">
         <section className="features">
           <div className="feature-card">
@@ -169,61 +207,107 @@ const Home = () => {
         {/* Comment Section */}
         <section className="comments-section">
           <h2>User Comments & Ratings</h2>
-          <form
-            className="comment-form"
-            onSubmit={handleSubmit}
-            style={{ marginBottom: "2rem" }}
-          >
-            <input
-              type="text"
-              name="name"
-              placeholder="Your Name"
-              value={form.name}
-              onChange={handleInputChange}
-              className="comment-input"
-              required
-            />
-            <input
-              type="url"
-              name="photo"
-              placeholder="Photo URL (Unsplash, optional)"
-              value={form.photo}
-              onChange={handleInputChange}
-              className="comment-input"
-            />
-            <textarea
-              name="comment"
-              placeholder="Your Comment"
-              value={form.comment}
-              onChange={handleInputChange}
-              className="comment-input"
-              required
-            />
-            <div className="comment-rating-input">
-              {[1, 2, 3, 4, 5].map((r) => (
-                <span
-                  key={r}
-                  style={{
-                    cursor: "pointer",
-                    color: r <= form.rating ? "#f5b301" : "#ccc",
-                    fontSize: "1.5rem",
-                  }}
-                  onClick={() => handleRatingChange(r)}
-                  aria-label={`Rate ${r}`}
-                >
-                  ★
-                </span>
-              ))}
-              <span style={{ marginLeft: "0.5rem" }}>({form.rating})</span>
-            </div>
-            <button
-              type="submit"
-              className="adopt-btn"
-              style={{ marginTop: "1rem", width: "100%" }}
+          {isAuthenticated ? (
+            <form
+              className="comment-form"
+              onSubmit={handleSubmit}
+              style={{ marginBottom: "2rem" }}
             >
-              Submit Comment
-            </button>
-          </form>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "1rem",
+                  marginBottom: "1rem",
+                  padding: "0.75rem",
+                  backgroundColor: "var(--card-bg, #f5f5f5)",
+                  borderRadius: "8px",
+                }}
+              >
+                <img
+                  src={
+                    user.profilePicture ||
+                    "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80"
+                  }
+                  alt={user.username || user.email}
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                  }}
+                />
+                <div>
+                  <strong>{user.username || user.email}</strong>
+                  {user.role && (
+                    <span
+                      style={{
+                        marginLeft: "0.5rem",
+                        fontSize: "0.8rem",
+                        padding: "0.2rem 0.5rem",
+                        borderRadius: "4px",
+                        backgroundColor:
+                          user.role === "Admin" ? "#4caf50" : "#2196f3",
+                        color: "white",
+                      }}
+                    >
+                      {user.role}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <textarea
+                name="comment"
+                placeholder="Your Comment"
+                value={form.comment}
+                onChange={handleInputChange}
+                className="comment-input"
+                required
+              />
+              <div className="comment-rating-input">
+                {[1, 2, 3, 4, 5].map((r) => (
+                  <span
+                    key={r}
+                    style={{
+                      cursor: "pointer",
+                      color: r <= form.rating ? "#f5b301" : "#ccc",
+                      fontSize: "1.5rem",
+                    }}
+                    onClick={() => handleRatingChange(r)}
+                    aria-label={`Rate ${r}`}
+                  >
+                    ★
+                  </span>
+                ))}
+                <span style={{ marginLeft: "0.5rem" }}>({form.rating})</span>
+              </div>
+              <button
+                type="submit"
+                className="adopt-btn"
+                style={{ marginTop: "1rem", width: "100%" }}
+                disabled={submitting}
+              >
+                {submitting ? "Submitting..." : "Submit Comment"}
+              </button>
+            </form>
+          ) : (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "2rem",
+                marginBottom: "2rem",
+                backgroundColor: "var(--card-bg, #f5f5f5)",
+                borderRadius: "8px",
+              }}
+            >
+              <p style={{ marginBottom: "1rem" }}>
+                Please log in to leave a comment.
+              </p>
+              <Link to="/login" className="adopt-btn">
+                Login
+              </Link>
+            </div>
+          )}
           <div className="comments-list">
             {comments.map((c, idx) => (
               <div className="comment-card" key={idx}>
@@ -292,44 +376,60 @@ const Home = () => {
                   </form>
                 ) : (
                   <>
-                    <img src={c.photo} alt={c.name} className="comment-photo" />
+                    <img
+                      src={
+                        c.user?.profilePicture ||
+                        c.photo ||
+                        "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80"
+                      }
+                      alt={c.user?.username || c.name}
+                      className="comment-photo"
+                    />
                     <div className="comment-content">
                       <div className="comment-header">
-                        <span className="comment-name">{c.name}</span>
+                        <span className="comment-name">
+                          {c.user?.username || c.name || "Anonymous"}
+                        </span>
                         <span className="comment-rating">
                           {"★".repeat(c.rating)}
                           {"☆".repeat(5 - c.rating)}
                         </span>
                       </div>
                       <p className="comment-text">{c.comment}</p>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "0.5rem",
-                          marginTop: "0.5rem",
-                        }}
-                      >
-                        <button
-                          className="adopt-btn"
-                          style={{
-                            padding: "0.3rem 0.8rem",
-                            fontSize: "0.95rem",
-                          }}
-                          onClick={() => handleEdit(idx)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="support-btn"
-                          style={{
-                            padding: "0.3rem 0.8rem",
-                            fontSize: "0.95rem",
-                          }}
-                          onClick={() => handleDelete(idx)}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      {/* Only show edit/delete buttons if user owns the comment or is admin */}
+                      {isAuthenticated &&
+                        (isAdmin ||
+                          c.user?._id === user?._id ||
+                          c.user === user?._id) && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "0.5rem",
+                              marginTop: "0.5rem",
+                            }}
+                          >
+                            <button
+                              className="adopt-btn"
+                              style={{
+                                padding: "0.3rem 0.8rem",
+                                fontSize: "0.95rem",
+                              }}
+                              onClick={() => handleEdit(idx)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="support-btn"
+                              style={{
+                                padding: "0.3rem 0.8rem",
+                                fontSize: "0.95rem",
+                              }}
+                              onClick={() => handleDelete(idx)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                     </div>
                   </>
                 )}
@@ -337,6 +437,47 @@ const Home = () => {
             ))}
           </div>
         </section>
+        {/* Scrolling logos for supporting organizations */}
+        <div className="scrolling-logos-container">
+          <div className="scrolling-logos">
+            <img
+              src="/src/assets/EWTLogo.png"
+              alt="Endagered Wildlife Trust"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/GWCLogo.png"
+              alt="Global Wildlife Conservancy"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/wwfLogo.png"
+              alt="Wildlife WWF"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/haribonLogo.png"
+              alt="Wildlife Org 4"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/SSCSLogo.png"
+              alt="Sea Shepherd Conservation Society"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/unesco.png"
+              alt="unesco"
+              className="logo-icon"
+            />
+            <img
+              src="/src/assets/MCiLogo.png"
+              alt="unesco"
+              className="logo-icon"
+            />
+            {/* Add more logos as needed */}
+          </div>
+        </div>
       </div>
     </div>
   );

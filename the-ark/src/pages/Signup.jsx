@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faEnvelope, faLock } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
+import { API_URL } from "../../config/config";
 
 function Signup() {
   const [username, setName] = useState("");
@@ -17,7 +18,7 @@ function Signup() {
     e.preventDefault();
 
     try {
-      const { data } = await axios.post("http://localhost:5005/auth/signup", {
+      const { data } = await axios.post(`${API_URL}/signup`, {
         username,
         password,
         email,
