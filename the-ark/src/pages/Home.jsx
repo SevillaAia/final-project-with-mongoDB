@@ -11,6 +11,15 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../../config/config";
 
+// Import logo images
+import EWTLogo from "../assets/EWTLogo.png";
+import GWCLogo from "../assets/GWCLogo.png";
+import wwfLogo from "../assets/wwfLogo.png";
+import haribonLogo from "../assets/haribonLogo.png";
+import SSCSLogo from "../assets/SSCSLogo.png";
+import unescoLogo from "../assets/unesco.png";
+import MCiLogo from "../assets/MCiLogo.png";
+
 const Home = () => {
   const { user, isAuthenticated, isAdmin } = useAuth();
 
@@ -446,38 +455,30 @@ const Home = () => {
         <div className="scrolling-logos-container">
           <div className="scrolling-logos">
             <img
-              src="/src/assets/EWTLogo.png"
-              alt="Endagered Wildlife Trust"
+              src={EWTLogo}
+              alt="Endangered Wildlife Trust"
               className="logo-icon"
             />
             <img
-              src="/src/assets/GWCLogo.png"
+              src={GWCLogo}
               alt="Global Wildlife Conservancy"
               className="logo-icon"
             />
+            <img src={wwfLogo} alt="Wildlife WWF" className="logo-icon" />
             <img
-              src="/src/assets/wwfLogo.png"
-              alt="Wildlife WWF"
+              src={haribonLogo}
+              alt="Haribon Foundation"
               className="logo-icon"
             />
             <img
-              src="/src/assets/haribonLogo.png"
-              alt="Wildlife Org 4"
-              className="logo-icon"
-            />
-            <img
-              src="/src/assets/SSCSLogo.png"
+              src={SSCSLogo}
               alt="Sea Shepherd Conservation Society"
               className="logo-icon"
             />
+            <img src={unescoLogo} alt="UNESCO" className="logo-icon" />
             <img
-              src="/src/assets/unesco.png"
-              alt="unesco"
-              className="logo-icon"
-            />
-            <img
-              src="/src/assets/MCiLogo.png"
-              alt="unesco"
+              src={MCiLogo}
+              alt="Marine Conservation Institute"
               className="logo-icon"
             />
             {/* Add more logos as needed */}
