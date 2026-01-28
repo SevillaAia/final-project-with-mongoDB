@@ -137,14 +137,17 @@ const Home = () => {
     if (!isAuthenticated || !form.comment || submitting) return;
 
     const newComment = {
-      /*  name: user.username || user.email,
+      name: user.username || user.email,
       photo:
         user.profilePicture ||
         "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80",
       rating: form.rating,
       comment: form.comment,
-      user: user._id, */
+      user: user._id,
     };
+
+    console.log("Submitting comment:", newComment);
+    console.log("User object:", user);
 
     setSubmitting(true);
     try {
@@ -159,6 +162,8 @@ const Home = () => {
       setForm({ rating: 5, comment: "" });
     } catch (error) {
       console.error("Error saving comment:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
       // Fallback: add to local state even if backend fails
       setComments((prev) => [newComment, ...prev]);
       setForm({ rating: 5, comment: "" });
