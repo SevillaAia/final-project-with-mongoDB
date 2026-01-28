@@ -10,6 +10,7 @@ import {
   faPaw,
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
+import { API_URL } from "../../../config/config";
 
 const PetManagement = () => {
   // Sample pets data
@@ -101,7 +102,7 @@ const PetManagement = () => {
     const fetchPets = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await axios.get("http://localhost:5005/auth/pets", {
+        const response = await axios.get(`${API_URL}/pets`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -239,7 +240,7 @@ const PetManagement = () => {
       if (editingPet) {
         // Update existing pet
         const response = await axios.put(
-          `http://localhost:5005/auth/pets/${editingPet._id}`,
+          `${API_URL}/pets/${editingPet._id}`,
           petData,
           {
             headers: {
@@ -252,15 +253,11 @@ const PetManagement = () => {
         );
       } else {
         // Add new pet
-        const response = await axios.post(
-          "http://localhost:5005/auth/pets",
-          petData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        const response = await axios.post(`${API_URL}/pets`, petData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
         setPets((prev) => [...prev, response.data]);
       }
 
@@ -278,7 +275,7 @@ const PetManagement = () => {
     if (window.confirm("Are you sure you want to delete this pet?")) {
       try {
         const token = localStorage.getItem("authToken");
-        await axios.delete(`http://localhost:5005/auth/pets/${petId}`, {
+        await axios.delete(`${API_URL}/pets/${petId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

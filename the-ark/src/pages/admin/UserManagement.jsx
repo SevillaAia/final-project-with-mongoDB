@@ -9,6 +9,7 @@ import {
   faTimes,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
+import { API_URL } from "../../../config/config";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([
@@ -65,7 +66,7 @@ const UserManagement = () => {
   useEffect(() => {
     async function getAllUsers() {
       try {
-        const users = await axios.get("http://localhost:5005/auth/user");
+        const users = await axios.get(`${API_URL}/user`);
         console.log(users.data);
         setUsers(users.data);
       } catch (error) {
@@ -141,7 +142,7 @@ const UserManagement = () => {
       try {
         // Send PUT request to backend to update user
         const userId = editingUser._id || editingUser.id;
-        await axios.put(`http://localhost:5005/auth/user/${userId}`, formData, {
+        await axios.put(`${API_URL}/user/${userId}`, formData, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
@@ -178,7 +179,7 @@ const UserManagement = () => {
   const handleDelete = async (userId) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
-        await axios.delete(`http://localhost:5005/auth/user/${userId}`, {
+        await axios.delete(`${API_URL}/user/${userId}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
@@ -201,7 +202,7 @@ const UserManagement = () => {
       const newStatus = user.status === "Active" ? "Inactive" : "Active";
       // Update status in backend
       await axios.put(
-        `http://localhost:5005/auth/user/${userId}/status`,
+        `${API_URL}/user/${userId}/status`,
         { status: newStatus },
         {
           headers: {

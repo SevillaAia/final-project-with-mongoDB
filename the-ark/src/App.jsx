@@ -25,6 +25,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import PetManagement from "./pages/admin/PetManagement";
 import WildAnimalRescue from "./pages/admin/WildAnimalRescue";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdoptionManagement from "./pages/admin/AdoptionManagement";
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="pets" element={<PetManagement />} />
+            <Route path="adoptions" element={<AdoptionManagement />} />
             <Route path="wild-rescue" element={<WildAnimalRescue />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

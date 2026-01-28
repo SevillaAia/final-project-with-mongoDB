@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../../config/config";
 
 const AuthContext = createContext();
 
@@ -21,14 +22,11 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("authToken");
       if (token) {
         try {
-          const response = await axios.get(
-            "http://localhost:5005/auth/verify",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+          const response = await axios.get(`${API_URL}/verify`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
             },
-          );
+          });
           setUser(response.data.currentLoggedInUser);
         } catch (error) {
           console.error("Token verification failed:", error);

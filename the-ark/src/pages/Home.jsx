@@ -9,6 +9,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../../config/config";
 
 const Home = () => {
   const { user, isAuthenticated, isAdmin } = useAuth();
@@ -45,7 +46,7 @@ const Home = () => {
     // Fetch comments from backend API (if available)
     async function getAllComments() {
       try {
-        const response = await axios.get("http://localhost:5005/auth/comments");
+        const response = await axios.get(`${API_URL}/comments`);
         console.log("Comments from backend:", response.data);
         if (response.data && response.data.length > 0) {
           setComments(response.data);
@@ -98,14 +99,11 @@ const Home = () => {
     // Delete from backend
     try {
       const token = localStorage.getItem("authToken");
-      await axios.delete(
-        `http://localhost:5005/auth/comments/${commentToDelete._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      await axios.delete(`${API_URL}/comments/${commentToDelete._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
     } catch (error) {
       console.error("Error deleting comment:", error);
       // If delete fails, add the comment back
@@ -139,27 +137,23 @@ const Home = () => {
     if (!isAuthenticated || !form.comment || submitting) return;
 
     const newComment = {
-      name: user.username || user.email,
+      /*  name: user.username || user.email,
       photo:
         user.profilePicture ||
         "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=facearea&w=128&q=80",
       rating: form.rating,
       comment: form.comment,
-      user: user._id,
+      user: user._id, */
     };
 
     setSubmitting(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.post(
-        "http://localhost:5005/auth/comments",
-        newComment,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await axios.post(`${API_URL}/comments`, newComment, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
       // Add the saved comment (with _id from backend) to the list
       setComments((prev) => [response.data, ...prev]);
       setForm({ rating: 5, comment: "" });

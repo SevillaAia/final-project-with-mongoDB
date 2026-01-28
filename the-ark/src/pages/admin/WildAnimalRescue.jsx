@@ -13,6 +13,7 @@ import {
   faHeart,
   faCheckCircle,
 } from "@fortawesome/free-solid-svg-icons";
+import { API_URL } from "../../../config/config";
 
 const WildAnimalRescue = () => {
   // Sample wild animals data
@@ -92,14 +93,11 @@ const WildAnimalRescue = () => {
     async function fetchAnimals() {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await fetch(
-          "http://localhost:5005/auth/wild-animals",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        const response = await fetch(`${API_URL}/wild-animals`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
         const data = await response.json();
         const animalsData = Array.isArray(data) ? data : data?.animals || [];
         setAnimals(animalsData);
@@ -216,7 +214,7 @@ const WildAnimalRescue = () => {
 
     try {
       const response = await axios.post(
-        "https://api.cloudinary.com/v1_1/dnv3hrhir/image/upload",
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
         uploadData,
       );
       return response.data.secure_url;
@@ -254,7 +252,7 @@ const WildAnimalRescue = () => {
       if (editingAnimal) {
         // Update existing animal
         const response = await axios.put(
-          `http://localhost:5005/auth/wild-animals/${editingAnimal._id}`,
+          `${API_URL}/wild-animals/${editingAnimal._id}`,
           animalData,
           {
             headers: {
@@ -270,7 +268,7 @@ const WildAnimalRescue = () => {
       } else {
         // Add new animal
         const response = await axios.post(
-          "http://localhost:5005/auth/wild-animals",
+          `${API_URL}/wild-animals`,
           animalData,
           {
             headers: {
@@ -295,14 +293,11 @@ const WildAnimalRescue = () => {
     if (window.confirm("Are you sure you want to delete this rescue record?")) {
       try {
         const token = localStorage.getItem("authToken");
-        await axios.delete(
-          `http://localhost:5005/auth/wild-animals/${animalId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        await axios.delete(`${API_URL}/wild-animals/${animalId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
         setAnimals((prev) =>
           prev.filter(
             (animal) => animal._id !== animalId && animal.id !== animalId,

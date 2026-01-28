@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../../config/config";
 
 const Profile = () => {
   const { user, logout, updateUser } = useAuth();
@@ -54,7 +55,7 @@ const Profile = () => {
       }
 
       try {
-        const response = await axios.get("http://localhost:5005/auth/verify", {
+        const response = await axios.get(`${API_URL}/verify`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -154,7 +155,7 @@ const Profile = () => {
       );
 
       const response = await axios.post(
-        "https://api.cloudinary.com/v1_1/dnv3hrhir/image/upload",
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
         uploadData,
       );
 
@@ -185,7 +186,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios.put(
-        "http://localhost:5005/auth/profile",
+        `${API_URL}/profile`,
         {
           username: formData.username,
           profilePicture: previewImage,
